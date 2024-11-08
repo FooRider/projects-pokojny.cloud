@@ -31,4 +31,7 @@ var rmqClassicEndpoint = rabbitMq.GetEndpoint("classic");
 var producerClassic = builder.AddProject<Projects.Producer_Classic>("producer-classic")
     .WithEnvironment("ConnectionStrings__broker", $"amqp://guest:guest@{rmqClassicEndpoint.Property(EndpointProperty.Host)}:{rmqClassicEndpoint.Property(EndpointProperty.Port)}/");
 
+var consumerClassic = builder.AddProject<Projects.Consumer_Classic>("consumer-classic")
+    .WithEnvironment("ConnectionStrings__broker", $"amqp://guest:guest@{rmqClassicEndpoint.Property(EndpointProperty.Host)}:{rmqClassicEndpoint.Property(EndpointProperty.Port)}/");
+
 builder.Build().Run();

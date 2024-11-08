@@ -5,7 +5,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using OpenTelemetry;
 using OpenTelemetry.Metrics;
-using Producer.Classic;
+using Consumer.Classic;
 using RabbitMQ.Client;
 
 var hostBuilder = Host.CreateApplicationBuilder(args);
@@ -24,12 +24,12 @@ otel.WithMetrics(metrics =>
 });
 if (hostBuilder.Configuration["OTEL_EXPORTER_OTLP_ENDPOINT"] != null)
     otel.UseOtlpExporter();
-
+    
 var brokerConnectionString = hostBuilder.Configuration.GetConnectionString("broker")!;
 hostBuilder.Services.AddSingleton<ConnectionFactory>(sp => new ConnectionFactory()
 {
     Uri = new Uri(brokerConnectionString)
 });
-hostBuilder.Services.AddHostedService<ClassicProducerService>();
+hostBuilder.Services.AddHostedService<ClassicConsumerService>();
 
 await hostBuilder.Build().RunAsync();
