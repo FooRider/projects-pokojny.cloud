@@ -1,0 +1,19 @@
+services:
+  
+  broker:
+    build:
+      context: ./.empty
+      dockerfile_inline: |
+        FROM rabbitmq:4.0-management
+        RUN echo "[rabbitmq_management,rabbitmq_prometheus,rabbitmq_stream,rabbitmq_stream_management]." > /etc/rabbitmq/enabled_plugins
+        ENV RABITMQ_ENABLED_PLUGINS_FILE=/etc/rabbitmq/enabled_plugins
+    environment:
+      RABBITMQ_NODENAME: rabbit@broker
+      RABBITMQ_SERVER_ADDITIONAL_ERL_ARGS: -rabbitmq_stream advertised_host broker
+    ports:
+      - 15672
+    deploy:
+      resources:
+        limits:
+          cpus: 2
+          memory: 500m

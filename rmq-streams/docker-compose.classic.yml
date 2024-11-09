@@ -1,0 +1,27 @@
+services:
+  
+  producer-classic:
+    build:
+      context: .
+      dockerfile: ./Producer.Classic/Dockerfile
+    environment:
+      ConnectionStrings__broker: amqp://guest:guest@broker:5672/
+    deploy:
+      replicas: 4
+      resources:
+        limits:
+          cpus: 0.5
+          memory: 500m
+  
+  consumer-classic:
+    build:
+      context: .
+      dockerfile: ./Consumer.Classic/Dockerfile
+    environment:
+      ConnectionStrings__broker: amqp://guest:guest@broker:5672/
+    deploy:
+      replicas: 1
+      resources:
+        limits:
+          cpus: 0.5
+          memory: 500m
