@@ -1,10 +1,8 @@
-using System.Diagnostics;
 using System.Diagnostics.Metrics;
-using System.Text;
 using Common;
+using Common.Observability;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
-using OpenTelemetry;
 using OpenTelemetry.Metrics;
 using Polly;
 using Polly.Retry;
@@ -57,42 +55,24 @@ public class ClassicProducerService(
             "Count of messages sent");
         
         var messagesSent = 0L;
-        var previousMessages = messagesSent;
-        var previousTicks = Stopwatch.GetTimestamp();
-        ObservableGauge<double>? gauge = meter.CreateObservableGauge<double>(
-            TelemetryConstants.MessagesSendingRateMetricsName,
-            () =>
-            {
-                var currentMessages = messagesSent;
-                var currentTicks = Stopwatch.GetTimestamp();
+        meter.CreateGaugeFromCounter(TelemetryConstants.MessagesSendingRateMetricsName,
+            () => (double)messagesSent, "mps", "Messages sending rate", logger);
 
-                var newMessagesSent = currentMessages - previousMessages;
-                var elapsed = Stopwatch.GetElapsedTime(previousTicks, currentTicks);
-                var rate = newMessagesSent / elapsed.TotalSeconds;
-                logger.LogInformation("Current sending rate: {Rate}", rate);
-
-                previousMessages = currentMessages;
-                previousTicks = currentTicks;
-
-                return [new Measurement<double>(rate)];
-            },
-            unit: "mps",
-            description: "Messages sending rate");
-        
+        var buffer = new byte[100_000];
+        new Random(123).NextBytes(buffer);
+        var rom = new ReadOnlyMemory<byte>(buffer);
         while (!stoppingToken.IsCancellationRequested)
         {
             var properties = new BasicProperties();
-            var msg = "Hello World!";
-            var body = Encoding.UTF8.GetBytes(msg);
             await model.BasicPublishAsync(BrokerModel.InletExchangeName,
                 routingKey: "",
                 mandatory: false,
                 basicProperties: properties,
-                body: body,
+                body: rom.Slice(0, 1_000),
                 cancellationToken: stoppingToken);
             counter?.Add(1);
             messagesSent++;
-            await Task.Delay(TimeSpan.FromMilliseconds(10), stoppingToken);
+            //await Task.Delay(TimeSpan.FromMilliseconds(10), stoppingToken);
         }
     }
 }

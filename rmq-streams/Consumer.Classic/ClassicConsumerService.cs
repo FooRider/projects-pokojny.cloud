@@ -1,6 +1,6 @@
-using System.Diagnostics;
 using System.Diagnostics.Metrics;
 using Common;
+using Common.Observability;
 using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using OpenTelemetry.Metrics;
@@ -56,33 +56,15 @@ public class ClassicConsumerService(
             "Count of messages received");
 
         var messagesReceived = 0L;
-        var previousMessages = messagesReceived;
-        var previousTicks = Stopwatch.GetTimestamp();
-        ObservableGauge<double>? gauge = meter.CreateObservableGauge<double>(
-            TelemetryConstants.MessagesSendingRateMetricsName,
-            () =>
-            {
-                var currentMessages = messagesReceived;
-                var currentTicks = Stopwatch.GetTimestamp();
-
-                var newMessagesSent = currentMessages - previousMessages;
-                var elapsed = Stopwatch.GetElapsedTime(previousTicks, currentTicks);
-                var rate = newMessagesSent / elapsed.TotalSeconds;
-                logger.LogInformation("Current sending rate: {Rate}", rate);
-
-                previousMessages = currentMessages;
-                previousTicks = currentTicks;
-
-                return [new Measurement<double>(rate)];
-            },
-            unit: "mps",
-            description: "Messages sending rate");
+        meter.CreateGaugeFromCounter(TelemetryConstants.MessagesReceivingRateMetricsName,
+            () => (double)messagesReceived, "mps", "Messages receiving rate", logger);
 
         var queue = await model.QueueDeclareAsync(
             queue: "",
             durable: false,
             exclusive: true,
-            autoDelete: true
+            autoDelete: true,
+            cancellationToken: stoppingToken
         );
 
         var consumer = new AsyncEventingBasicConsumer(model);
